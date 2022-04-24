@@ -1,42 +1,26 @@
-pipeline {
-    environment {
-    registry = "tamasjit/AngularProject1"
-    registryCredential = "dockerhub"
-    dockerImage = ''
-    PATH = "$PATH:/usr/local/bin"
-}
+node {
+  
+  stage('Checkout Source Code') {
+    checkout scm
+  }
 
-    agent {
-        'docker'}
-    stages {
-            stage('Cloning our Git') {
-                steps {
-                git 'https://github.com/tamasjit/hello-world-anguler.git'
-                }
-            }
+  stage('Create Docker Image') {
+    docker.build("docker_image:${env.BUILD_NUMBER}")
+  }
 
-            stage('Building Docker Image') {
-                steps {
-                    script {
-                        dockerImage = docker.build registry + ":$BUILD_NUMBER"
-                    }
-                }
-            }
-
-            stage('Deploying Docker Image to Dockerhub') {
-                steps {
-                    script {
-                        docker.withRegistry('', registryCredential) {
-                        dockerImage.push()
-                        }
-                    }
-                }
-            }
-
-            stage('Cleaning Up') {
-                steps{
-                  sh "docker rmi $registry:$BUILD_NUMBER"
-                }
-            }
-        }
+  stage ('Run Application') {
+    try {
+      // Stop existing Container
+      sh 'docker rm docker_container -f'
+      // Start database container here
+      sh "docker run -d --name docker_container docker_image:${env.BUILD_NUMBER}"
+    } 
+	catch (error) {
+    } finally {
+      // Stop and remove database container here
+      
     }
+  }
+  
+   
+ }
